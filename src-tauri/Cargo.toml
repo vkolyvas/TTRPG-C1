@@ -1,0 +1,40 @@
+[package]
+name = "ttrpg_companion"
+version = "0.1.0"
+edition = "2021"
+description = "Real-time audio companion app for tabletop RPG sessions"
+authors = ["vkolyvas"]
+license = "MIT"
+
+[lib]
+name = "ttrpg_companion_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.6", features = ["shell-open", "system-tray"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+cpal = "0.15"
+rodio = "0.19"
+symphonia = { version = "0.5", features = ["all"] }
+hound = "3.5"
+thiserror = "1.0"
+dirs = "5.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

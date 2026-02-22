@@ -32,3 +32,34 @@ Real-time audio companion app for tabletop RPG sessions. Runs in the background 
 ## License
 
 See individual component licenses for bundled content.
+
+## Building
+
+### Prerequisites
+- Rust (1.70+)
+- Node.js 18+
+- Tauri CLI
+
+### Build Commands
+
+```bash
+# Install dependencies
+cd src-tauri && cargo build
+
+# Run in development mode
+npm run tauri dev
+
+# Build for production
+npm run tauri build
+```
+
+### Project Structure
+
+```
+ttrpg_companion/
+├── src-tauri/           # Rust backend (Tauri)
+├── src-web/             # Frontend (HTML/CSS/JS)
+├── assets/              # Bundled audio (music, sfx)
+├── SPEC.md              # Project specification
+└── README.md            # This file
+```

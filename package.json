@@ -1,0 +1,14 @@
+{
+  "name": "ttrpg-companion",
+  "version": "0.1.0",
+  "description": "Real-time audio companion app for tabletop RPG sessions",
+  "scripts": {
+    "tauri": "tauri",
+    "tauri-dev": "tauri dev",
+    "tauri-build": "tauri build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5"
+  }
+}
