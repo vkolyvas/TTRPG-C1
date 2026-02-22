@@ -58,7 +58,7 @@ impl AudioCapture {
     }
 
     /// Start recording audio
-    pub fn start_recording<F>(&mut self, callback: F) -> Result<(), CaptureError>
+    pub fn start_recording<F>(&mut self, mut callback: F) -> Result<(), CaptureError>
     where
         F: FnMut(Vec<f32>) + Send + 'static,
     {

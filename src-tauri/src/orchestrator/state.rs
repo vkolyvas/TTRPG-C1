@@ -42,7 +42,7 @@ impl std::fmt::Display for SessionState {
 }
 
 /// Audio buffer for processing
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AudioBuffer {
     pub samples: Vec<f32>,
     pub sample_rate: u32,

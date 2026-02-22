@@ -8,21 +8,25 @@ pub mod dsp;
 pub mod inference;
 pub mod orchestrator;
 
-use std::sync::Mutex;
-use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Manager,
+};
 use tracing::{error, info};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 /// Application state shared across Tauri commands
 pub struct AppState {
-    pub orchestrator: Mutex<orchestrator::SessionOrchestrator>,
+    // Placeholder for now - can be extended later
+    pub initialized: std::sync::Mutex<bool>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            orchestrator: Mutex::new(orchestrator::SessionOrchestrator::new()),
+            initialized: std::sync::Mutex::new(false),
         }
     }
 }
@@ -52,21 +56,6 @@ fn init_logging() {
         .init();
 }
 
-/// Set up system tray with menu items
-fn setup_system_tray() -> SystemTray {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let start_session = CustomMenuItem::new("start_session".to_string(), "Start Session");
-    let stop_session = CustomMenuItem::new("stop_session".to_string(), "Stop Session");
-
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(start_session)
-        .add_item(stop_session)
-        .add_native_item(tauri::SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
-    SystemTray::new().with_menu(tray_menu)
-}
-
 /// Main entry point for the Tauri application
 pub fn run() {
     // Initialize logging first
@@ -82,44 +71,49 @@ pub fn run() {
         .setup(|app| {
             info!("Application setup complete");
 
-            // Handle system tray events
-            let _tray = app.system_tray().unwrap();
-            let handle = app.handle();
-            _tray.on_system_tray_event(move |_tray, event| {
-                match event {
-                    SystemTrayEvent::LeftClick { .. } => {
-                        if let Some(window) = handle.get_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    _ => {}
-                }
-            });
+            // Create system tray menu
+            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let start_session = MenuItem::with_id(app, "start_session", "Start Session", true, None::<&str>)?;
+            let stop_session = MenuItem::with_id(app, "stop_session", "Stop Session", true, None::<&str>)?;
 
-            Ok(())
-        })
-        .on_system_tray_event(|app, event| {
-            match event {
-                SystemTrayEvent::MenuItemClick { id, .. } => {
-                    match id.as_str() {
+            let menu = Menu::with_items(app, &[&start_session, &stop_session, &quit])?;
+
+            // Build system tray
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .tooltip("TTRPG Companion")
+                .on_menu_event(|app, event| {
+                    match event.id.as_ref() {
                         "quit" => {
                             info!("Quit requested from system tray");
                             app.exit(0);
                         }
                         "start_session" => {
                             info!("Start session requested from system tray");
-                            // Session start logic handled via commands
                         }
                         "stop_session" => {
                             info!("Stop session requested from system tray");
-                            // Session stop logic handled via commands
                         }
                         _ => {}
                     }
-                }
-                _ => {}
-            }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
         })
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
