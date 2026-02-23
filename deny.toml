@@ -1,0 +1,18 @@
+# cargo-deny configuration for security audit
+
+[licenses]
+unlicensed = "deny"
+allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "ISC"]
+deny = ["GPL-3.0", "LGPL-3.0"]
+
+[security]
+vulnerabilities = "deny"
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
