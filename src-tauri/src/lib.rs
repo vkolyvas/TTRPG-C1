@@ -8,6 +8,8 @@ pub mod dsp;
 pub mod inference;
 pub mod orchestrator;
 
+use orchestrator::state::{SessionConfig, SessionState};
+use std::sync::{Arc, Mutex};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -19,14 +21,19 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 
 /// Application state shared across Tauri commands
 pub struct AppState {
-    // Placeholder for now - can be extended later
-    pub initialized: std::sync::Mutex<bool>,
+    pub session_state: Mutex<SessionState>,
+    pub config: Mutex<SessionConfig>,
+    pub audio_buffer: Arc<Mutex<Vec<f32>>>,
+    pub sample_rate: Mutex<u32>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            initialized: std::sync::Mutex::new(false),
+            session_state: Mutex::new(SessionState::Idle),
+            config: Mutex::new(SessionConfig::default()),
+            audio_buffer: Arc::new(Mutex::new(Vec::new())),
+            sample_rate: Mutex::new(16000),
         }
     }
 }

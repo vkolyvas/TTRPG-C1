@@ -2,10 +2,10 @@
 
 use crate::audio::capture::AudioCapture;
 use crate::dsp::processing;
-use crate::inference::emotion::{Emotion, EmotionAnalyzer, EmotionResult};
+use crate::inference::emotion::{EmotionAnalyzer, EmotionResult};
 use crate::inference::whisper::{Transcription, WhisperEngine};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
@@ -89,7 +89,7 @@ pub struct SessionOrchestrator {
     capture: AudioCapture,
     whisper: WhisperEngine,
     emotion: EmotionAnalyzer,
-    audio_buffer: Vec<f32>,
+    audio_buffer: Arc<Mutex<Vec<f32>>>,  // Thread-safe buffer
     event_tx: Option<mpsc::Sender<SessionEvent>>,
 }
 
@@ -102,7 +102,7 @@ impl SessionOrchestrator {
             capture: AudioCapture::new(),
             whisper: WhisperEngine::new(),
             emotion: EmotionAnalyzer::new(),
-            audio_buffer: Vec::new(),
+            audio_buffer: Arc::new(Mutex::new(Vec::new())),
             event_tx: None,
         }
     }
@@ -136,17 +136,21 @@ impl SessionOrchestrator {
 
         info!("Starting recording session");
 
-        // Clear audio buffer
-        self.audio_buffer.clear();
+        // Clear and get buffer reference
+        {
+            let mut buffer = self.audio_buffer.lock().unwrap();
+            buffer.clear();
+        }
 
-        // Start audio capture
-        let buffer = Arc::new(self.audio_buffer.clone());
-        let buffer_clone = buffer.clone();
+        // Clone the Arc for the callback
+        let buffer = self.audio_buffer.clone();
 
+        // Start audio capture with callback that stores samples
         self.capture
             .start_recording(move |samples| {
-                // In a full implementation, we'd use proper thread-safe buffer
-                debug!("Received {} audio samples", samples.len());
+                if let Ok(mut buffer) = buffer.lock() {
+                    buffer.extend_from_slice(&samples);
+                }
             })
             .map_err(|e| OrchestratorError::AudioError(e.to_string()))?;
 
@@ -201,9 +205,15 @@ impl SessionOrchestrator {
 
     /// Process captured audio
     fn process_audio(&self) -> Result<SessionResult, OrchestratorError> {
-        info!("Processing audio buffer ({} samples)", self.audio_buffer.len());
+        // Get samples from the thread-safe buffer
+        let samples = {
+            let buffer = self.audio_buffer.lock().unwrap();
+            buffer.clone()
+        };
 
-        let mut samples = self.audio_buffer.clone();
+        info!("Processing audio buffer ({} samples)", samples.len());
+
+        let mut samples = samples;
 
         // Resample if needed
         let capture_rate = self.capture.sample_rate();
