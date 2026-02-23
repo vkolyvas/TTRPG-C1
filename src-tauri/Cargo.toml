@@ -28,9 +28,13 @@ hound = "3.5"
 thiserror = "1.0"
 dirs = "5.0"
 
+[target.'cfg(feature = "whisper")'.dependencies]
+whisper-rs = "0.15"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+whisper = []
 
 [profile.release]
 panic = "abort"
