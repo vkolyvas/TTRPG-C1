@@ -5,6 +5,7 @@ use crate::dsp::processing;
 use crate::inference::emotion::EmotionAnalyzer;
 use crate::inference::whisper::WhisperEngine;
 use crate::orchestrator::state::SessionState;
+use crate::state::AppMode;
 use crate::AppState;
 use cpal::traits::{DeviceTrait, HostTrait};
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,8 @@ pub struct SessionStatus {
     pub is_processing: bool,
     pub transcription: Option<String>,
     pub emotion: Option<String>,
+    pub current_emotion: Option<String>,
+    pub mode: String,
 }
 
 /// Audio device info
@@ -36,6 +39,16 @@ pub struct AudioDevice {
     pub name: String,
     pub is_input: bool,
     pub is_default: bool,
+}
+
+/// Track info
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TrackInfo {
+    pub id: String,
+    pub name: String,
+    pub genre: Option<String>,
+    pub mood: Option<String>,
+    pub is_looping: bool,
 }
 
 /// Get available audio devices
@@ -74,10 +87,7 @@ pub fn start_session(
     info!("Starting session command");
 
     // Check current state
-    let current_state = {
-        let state_guard = state.session_state.lock().unwrap();
-        *state_guard
-    };
+    let current_state = *state.session_state.read();
 
     if current_state != SessionState::Idle {
         return Ok(SessionResponse {
@@ -89,14 +99,14 @@ pub fn start_session(
 
     // Update config
     {
-        let mut config = state.config.lock().unwrap();
+        let mut config = state.config.write();
         config.enable_transcription = enable_transcription.unwrap_or(true);
         config.enable_emotion_analysis = enable_emotion.unwrap_or(true);
     }
 
     // Clear audio buffer
     {
-        let mut buffer = state.audio_buffer.lock().unwrap();
+        let mut buffer = state.audio_buffer.write();
         buffer.clear();
     }
 
@@ -106,9 +116,8 @@ pub fn start_session(
     let _handle = std::thread::spawn(move || {
         let mut capture = AudioCapture::new();
         let _ = capture.start_recording(move |samples| {
-            if let Ok(mut buf) = buffer.lock() {
-                buf.extend_from_slice(&samples);
-            }
+            let mut buf = buffer.write();
+            buf.extend_from_slice(&samples);
         });
 
         // Keep recording - the stream stays alive until the thread is dropped
@@ -119,10 +128,7 @@ pub fn start_session(
     });
 
     // Update state
-    {
-        let mut state_guard = state.session_state.lock().unwrap();
-        *state_guard = SessionState::Recording;
-    }
+    *state.session_state.write() = SessionState::Recording;
 
     Ok(SessionResponse {
         success: true,
@@ -137,10 +143,7 @@ pub fn stop_session(state: State<'_, AppState>) -> Result<SessionResponse, Strin
     info!("Stopping session command");
 
     // Check current state
-    let current_state = {
-        let state_guard = state.session_state.lock().unwrap();
-        *state_guard
-    };
+    let current_state = *state.session_state.read();
 
     if current_state != SessionState::Recording {
         return Ok(SessionResponse {
@@ -151,16 +154,13 @@ pub fn stop_session(state: State<'_, AppState>) -> Result<SessionResponse, Strin
     }
 
     // Update state to processing
-    {
-        let mut state_guard = state.session_state.lock().unwrap();
-        *state_guard = SessionState::Processing;
-    }
+    *state.session_state.write() = SessionState::Processing;
 
     // Get audio data
     let (samples, sample_rate, config) = {
-        let buffer = state.audio_buffer.lock().unwrap();
-        let rate = *state.sample_rate.lock().unwrap();
-        let cfg = state.config.lock().unwrap().clone();
+        let buffer = state.audio_buffer.read();
+        let rate = *state.sample_rate.read();
+        let cfg = state.config.read().clone();
         (buffer.clone(), rate, cfg)
     };
 
@@ -211,6 +211,11 @@ pub fn stop_session(state: State<'_, AppState>) -> Result<SessionResponse, Strin
         None
     };
 
+    // Update current emotion
+    if let Some(ref e) = emotion {
+        *state.current_emotion.write() = e.primary.to_string();
+    }
+
     // Format response
     let transcription_text = transcription.as_ref().map(|t| t.text.clone()).unwrap_or_default();
     let emotion_text = emotion.as_ref().map(|e| e.primary.to_string()).unwrap_or_else(|| "unknown".to_string());
@@ -222,10 +227,7 @@ pub fn stop_session(state: State<'_, AppState>) -> Result<SessionResponse, Strin
     );
 
     // Reset state to idle
-    {
-        let mut state_guard = state.session_state.lock().unwrap();
-        *state_guard = SessionState::Idle;
-    }
+    *state.session_state.write() = SessionState::Idle;
 
     Ok(SessionResponse {
         success: true,
@@ -237,10 +239,9 @@ pub fn stop_session(state: State<'_, AppState>) -> Result<SessionResponse, Strin
 /// Get current session status
 #[tauri::command]
 pub fn get_session_status(state: State<'_, AppState>) -> Result<SessionStatus, String> {
-    let session_state = {
-        let guard = state.session_state.lock().unwrap();
-        *guard
-    };
+    let session_state = *state.session_state.read();
+    let app_mode = *state.app_mode.read();
+    let current_emotion = state.current_emotion.read().clone();
 
     let is_recording = session_state == SessionState::Recording;
     let is_processing = session_state == SessionState::Processing;
@@ -251,5 +252,102 @@ pub fn get_session_status(state: State<'_, AppState>) -> Result<SessionStatus, S
         is_processing,
         transcription: None,
         emotion: None,
+        current_emotion: Some(current_emotion),
+        mode: match app_mode {
+            AppMode::ModeA => "autonomous".to_string(),
+            AppMode::ModeB => "collaborative".to_string(),
+        },
+    })
+}
+
+/// Get tracks from database
+#[tauri::command]
+pub fn get_tracks(state: State<'_, AppState>, genre: Option<String>) -> Result<Vec<TrackInfo>, String> {
+    let pool = state.db_pool.read();
+
+    if let Some(ref pool) = *pool {
+        // Use repository to fetch tracks
+        // For now, return sample tracks
+        Ok(vec![
+            TrackInfo {
+                id: "1".to_string(),
+                name: "Battle Theme".to_string(),
+                genre: Some("combat".to_string()),
+                mood: Some("angry".to_string()),
+                is_looping: true,
+            },
+            TrackInfo {
+                id: "2".to_string(),
+                name: "Mystery Theme".to_string(),
+                genre: Some("exploration".to_string()),
+                mood: Some("neutral".to_string()),
+                is_looping: true,
+            },
+            TrackInfo {
+                id: "3".to_string(),
+                name: "Victory Fanfare".to_string(),
+                genre: Some("social".to_string()),
+                mood: Some("happy".to_string()),
+                is_looping: false,
+            },
+        ])
+    } else {
+        // Database not available, return sample tracks
+        Ok(vec![
+            TrackInfo {
+                id: "sample-1".to_string(),
+                name: "Ambient Dungeon".to_string(),
+                genre: Some("exploration".to_string()),
+                mood: Some("neutral".to_string()),
+                is_looping: true,
+            },
+            TrackInfo {
+                id: "sample-2".to_string(),
+                name: "Boss Battle".to_string(),
+                genre: Some("combat".to_string()),
+                mood: Some("angry".to_string()),
+                is_looping: true,
+            },
+        ])
+    }
+}
+
+/// Set application mode (A: autonomous, B: collaborative)
+#[tauri::command]
+pub fn set_app_mode(state: State<'_, AppState>, mode: String) -> Result<SessionResponse, String> {
+    let new_mode = match mode.as_str() {
+        "autonomous" => AppMode::ModeA,
+        "collaborative" => AppMode::ModeB,
+        _ => return Err("Invalid mode. Use 'autonomous' or 'collaborative'".to_string()),
+    };
+
+    *state.app_mode.write() = new_mode;
+
+    Ok(SessionResponse {
+        success: true,
+        message: format!("Mode set to {}", mode),
+        state: mode,
+    })
+}
+
+/// Get current application mode
+#[tauri::command]
+pub fn get_app_mode(state: State<'_, AppState>) -> Result<String, String> {
+    let mode = *state.app_mode.read();
+    Ok(match mode {
+        AppMode::ModeA => "autonomous".to_string(),
+        AppMode::ModeB => "collaborative".to_string(),
+    })
+}
+
+/// Enable/disable detection
+#[tauri::command]
+pub fn set_detection_enabled(state: State<'_, AppState>, enabled: bool) -> Result<SessionResponse, String> {
+    *state.detection_ready.write() = enabled;
+
+    Ok(SessionResponse {
+        success: true,
+        message: format!("Detection {}", if enabled { "enabled" } else { "disabled" }),
+        state: if enabled { "enabled" } else { "disabled" }.to_string(),
     })
 }

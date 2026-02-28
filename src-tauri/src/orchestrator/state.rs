@@ -1,4 +1,9 @@
 //! Session state machine
+//!
+//! Re-exports from the main state module for backwards compatibility.
+
+pub use crate::state::SessionState;
+pub use crate::state::SessionConfig;
 
 use crate::audio::capture::AudioCapture;
 use crate::dsp::processing;
@@ -20,27 +25,6 @@ pub enum OrchestratorError {
     InferenceError(String),
 }
 
-/// Session states
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SessionState {
-    Idle,
-    Recording,
-    Processing,
-    Error,
-}
-
-impl std::fmt::Display for SessionState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SessionState::Idle => write!(f, "idle"),
-            SessionState::Recording => write!(f, "recording"),
-            SessionState::Processing => write!(f, "processing"),
-            SessionState::Error => write!(f, "error"),
-        }
-    }
-}
-
 /// Audio buffer for processing
 #[derive(Clone, Debug)]
 pub struct AudioBuffer {
@@ -58,28 +42,6 @@ pub enum SessionEvent {
     TranscriptionReady(Transcription),
     EmotionAnalysisReady(EmotionResult),
     Error(String),
-}
-
-/// Session configuration
-#[derive(Debug, Clone)]
-pub struct SessionConfig {
-    pub sample_rate: u32,
-    pub buffer_size_ms: u32,
-    pub silence_threshold: f32,
-    pub enable_transcription: bool,
-    pub enable_emotion_analysis: bool,
-}
-
-impl Default for SessionConfig {
-    fn default() -> Self {
-        Self {
-            sample_rate: 16000,
-            buffer_size_ms: 100,
-            silence_threshold: 0.01,
-            enable_transcription: true,
-            enable_emotion_analysis: true,
-        }
-    }
 }
 
 /// Session orchestrator - manages the audio processing pipeline

@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "description": "Real-time audio companion app for tabletop RPG sessions",
   "scripts": {
+    "dev": "npm run serve & sleep 2 && npm run tauri:dev",
+    "serve": "serve -s src-web -l 3010",
     "tauri": "tauri",
-    "tauri-dev": "tauri dev",
+    "tauri:dev": "tauri dev",
     "tauri-build": "tauri build"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "serve": "^14.2.5"
   }
 }
