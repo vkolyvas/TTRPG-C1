@@ -1,9 +1,14 @@
 # Build artifacts
 /target
 /src-tauri/target
+/src-tauri/gen/
 
 # Dependencies
 /node_modules
+
+# Cargo lock files (optional - can be committed for reproducible builds)
+/src-tauri/Cargo.lock
+package-lock.json
 
 # IDE
 .idea/
@@ -22,3 +27,21 @@ logs/
 # Local data
 *.db
 *.sqlite
+data/
+
+# Tauri
+/src-tauri/dist/
+/src-tauri/release/
+
+# ML Models (downloaded separately)
+models/
+
+# Audio files (optional - can be large)
+assets/audio/
+assets/music/
+assets/sfx/
+
+# Temp files
+*.tmp
+*.temp
+cache/
