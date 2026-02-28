@@ -181,12 +181,12 @@ If you don't want to build from source, download the latest release from GitHub:
 **Quick install on Linux:**
 ```bash
 # Debian/Ubuntu
-wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG%20Companion_0.1.0_amd64.deb
-sudo dpkg -i "TTRPG Companion_0.1.0_amd64.deb"
+wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG-Companion_0.1.0_amd64.deb
+sudo dpkg -i TTRPG-Companion_0.1.0_amd64.deb
 
 # Fedora/RHEL
-wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG%20Companion-0.1.0-1.x86_64.rpm
-sudo rpm -i "TTRPG Companion-0.1.0-1.x86_64.rpm"
+wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG-Companion-0.1.0-1.x86_64.rpm
+sudo rpm -i TTRPG-Companion-0.1.0-1.x86_64.rpm
 ```
 
 **Note:** macOS and Windows builds require building on those platforms. Clone the repo and run `npm run tauri build` on your Mac/Windows machine.
