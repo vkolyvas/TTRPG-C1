@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.ttrpgcompanion.app",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
-    "devUrl": "http://localhost:3015",
-    "frontendDist": "../src-web"
+    "beforeDevCommand": "npm run dev --prefix ./src-svelte",
+    "beforeBuildCommand": "npm run build --prefix ./src-svelte",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../src-svelte/dist"
   },
   "app": {
     "withGlobalTauri": false,

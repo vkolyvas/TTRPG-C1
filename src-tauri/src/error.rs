@@ -8,6 +8,9 @@ pub enum AppError {
     #[error("Audio error: {0}")]
     Audio(String),
 
+    #[error("Playback error: {0}")]
+    Playback(String),
+
     #[error("Database error: {0}")]
     Database(String),
 
@@ -36,12 +39,6 @@ pub enum AppError {
     Serialization(String),
 }
 
-impl From<std::io::Error> for AppError {
-    fn from(e: std::io::Error) -> Self {
-        AppError::Io(e.to_string())
-    }
-}
-
 impl From<rusqlite::Error> for AppError {
     fn from(e: rusqlite::Error) -> Self {
         AppError::Database(e.to_string())
@@ -51,6 +48,12 @@ impl From<rusqlite::Error> for AppError {
 impl From<r2d2::Error> for AppError {
     fn from(e: r2d2::Error) -> Self {
         AppError::Database(e.to_string())
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(e: std::io::Error) -> Self {
+        AppError::Io(e.to_string())
     }
 }
 

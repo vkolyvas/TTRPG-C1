@@ -212,6 +212,10 @@ pub fn run() {
             commands::session::set_app_mode,
             commands::session::get_app_mode,
             commands::session::set_detection_enabled,
+            commands::training::get_training_passages,
+            commands::training::get_training_status,
+            commands::training::save_voice_profile,
+            commands::training::delete_voice_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
