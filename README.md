@@ -169,24 +169,27 @@ The built installer will be at: `src-tauri/target/release/bundle/msi/`
 
 If you don't want to build from source, download the latest release from GitHub:
 
+**Download:** https://github.com/vkolyvas/TTRPG-C1/releases/latest
+
 | Platform | Package | Installation |
 |----------|---------|--------------|
-| Windows | `.msi` or `.exe` | Double-click to install |
-| macOS | `.dmg` | Drag to Applications folder |
-| Linux | `.deb`, `.rpm`, or `.AppImage` | See below |
+| Linux (Debian/Ubuntu) | `.deb` | `sudo dpkg -i TTRPG-Companion_0.1.0_amd64.deb` |
+| Linux (Fedora/RHEL) | `.rpm` | `sudo rpm -i TTRPG-Companion-0.1.0-1.x86_64.rpm` |
+| macOS | `.dmg` | Build from source (see above) |
+| Windows | `.exe` or `.msi` | Build from source (see above) |
 
-**Linux package installation:**
+**Quick install on Linux:**
 ```bash
 # Debian/Ubuntu
-sudo dpkg -i TTRPG-Companion_0.1.0_amd64.deb
+wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG%20Companion_0.1.0_amd64.deb
+sudo dpkg -i "TTRPG Companion_0.1.0_amd64.deb"
 
-# Fedora
-sudo rpm -i TTRPG-Companion-0.1.0-1.x86_64.rpm
-
-# AppImage (portable)
-chmod +x TTRPG-Companion_0.1.0_amd64.AppImage
-./TTRPG-Companion_0.1.0_amd64.AppImage
+# Fedora/RHEL
+wget https://github.com/vkolyvas/TTRPG-C1/releases/download/v0.1.0/TTRPG%20Companion-0.1.0-1.x86_64.rpm
+sudo rpm -i "TTRPG Companion-0.1.0-1.x86_64.rpm"
 ```
+
+**Note:** macOS and Windows builds require building on those platforms. Clone the repo and run `npm run tauri build` on your Mac/Windows machine.
 
 ---
 
